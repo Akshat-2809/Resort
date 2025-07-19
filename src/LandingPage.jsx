@@ -1,7 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 const LuxeEscape = () => {
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Show nav when scrolling up, hide when scrolling down
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        // Scrolling down & past threshold
+        setIsNavVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up
+        setIsNavVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -33,6 +56,22 @@ const LuxeEscape = () => {
       transition: {
         duration: 0.8,
         ease: "easeOut"
+      }
+    },
+    scrollHidden: {
+      y: -100,
+      opacity: 0,
+      transition: {
+        duration: 0.3,
+        ease: "easeInOut"
+      }
+    },
+    scrollVisible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.3,
+        ease: "easeInOut"
       }
     }
   };
@@ -82,7 +121,7 @@ const LuxeEscape = () => {
       <motion.nav 
         variants={navVariants}
         initial="hidden"
-        animate="visible"
+        animate={isNavVisible ? "scrollVisible" : "scrollHidden"}
         className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm px-6 py-4 shadow-sm"
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
