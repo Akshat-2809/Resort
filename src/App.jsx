@@ -3,6 +3,7 @@ import LandingPage from './LandingPage.jsx'
 import RoomPage from './RoomPage.jsx'
 import Restraunt from './Restaurant.jsx'
 import VideoPage from './VideoPage.jsx'
+import BookingPage from './BookingPage.jsx'
 
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
     <RoomPage/>
     <Restraunt/>
     <VideoPage/>
+    <BookingPage/>
     </div>
   )
 }
