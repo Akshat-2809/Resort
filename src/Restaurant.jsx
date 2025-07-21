@@ -233,5 +233,4 @@ const RestaurantHero = () => {
     </div>
   );
 };
-
 export default RestaurantHero;

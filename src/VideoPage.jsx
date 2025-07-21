@@ -279,5 +279,4 @@ const HotelVisualization = () => {
     </div>
   );
 };
-
 export default HotelVisualization;

@@ -1,337 +1,499 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, Users, ArrowUpRight } from 'lucide-react';
-import { gsap } from 'gsap';
+import { Calendar, Users, ArrowUpRight, Plus, Minus, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const BookingPage = () => {
-  const [checkIn, setCheckIn] = useState('11.03.2025');
-  const [checkOut, setCheckOut] = useState('15.03.2025');
-  const [guests, setGuests] = useState('2 guests, 0 children');
-  const [selectedRoom, setSelectedRoom] = useState(null);
+// Room data
+const ROOMS = [
+  {
+    id: 1,
+    name: "Deluxe Room",
+    beds: "1 bed",
+    sleeps: "2 sleeps",
+    maxGuests: 2,
+    price: "$299",
+    image: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80",
+    category: "deluxe"
+  },
+  {
+    id: 2,
+    name: "Junior Suite",
+    beds: "1 bed",
+    sleeps: "2 sleeps",
+    maxGuests: 2,
+    price: "$399",
+    image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    category: "junior-suite"
+  },
+  {
+    id: 3,
+    name: "Suite",
+    beds: "1 bed",
+    sleeps: "2 sleeps",
+    maxGuests: 2,
+    price: "$549",
+    image: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    category: "suite"
+  },
+  {
+    id: 4,
+    name: "Twin Room",
+    beds: "2 beds",
+    sleeps: "4 sleeps",
+    maxGuests: 4,
+    price: "$199",
+    image: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80",
+    category: "twin"
+  },
+  {
+    id: 5,
+    name: "Presidential Suite",
+    beds: "2 bed",
+    sleeps: "6 sleeps",
+    maxGuests: 6,
+    price: "$899",
+    image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+    category: "suite"
+  }
+];
+
+// Date utility functions
+const getFormattedDate = (date) => {
+  return new Date(date).toISOString().split('T')[0];
+};
+
+const getTodayDate = () => {
+  return getFormattedDate(new Date());
+};
+
+const getMinCheckOutDate = (checkInDate) => {
+  if (!checkInDate) return getTodayDate();
+  const date = new Date(checkInDate);
+  date.setDate(date.getDate() + 1);
+  return getFormattedDate(date);
+};
+
+const isDateValid = (checkIn, checkOut) => {
+  const checkInDate = new Date(checkIn);
+  const checkOutDate = new Date(checkOut);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   
-  const headerRef = useRef(null);
-  const formRef = useRef(null);
-  const roomsRef = useRef(null);
-  const roomCardRefs = useRef([]);
+  return checkInDate >= today && checkOutDate > checkInDate;
+};
 
-  const rooms = [
-    {
-      id: 1,
-      name: "Deluxe Room",
-      beds: "1 bed",
-      sleeps: "2 sleeps",
-      price: "$299",
-      image: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80",
-      category: "deluxe"
-    },
-    {
-      id: 2,
-      name: "Junior Suite",
-      beds: "1 bed",
-      sleeps: "2 sleeps",
-      price: "$399",
-      image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
-      category: "junior-suite"
-    },
-    {
-      id: 3,
-      name: "Suite",
-      beds: "1 bed",
-      sleeps: "2 sleeps",
-      price: "$549",
-      image: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
-      category: "suite"
-    },
-    {
-      id: 4,
-      name: "Twin Room",
-      beds: "2 beds",
-      sleeps: "4 sleeps",
-      price: "$199",
-      image: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80",
-      category: "twin"
-    },
-    {
-      id: 5,
-      name: "Superior Room",
-      beds: "1 bed",
-      sleeps: "2 sleeps",
-      price: "$249",
-      image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
-      category: "superior"
+// Guest Counter Component
+const GuestCounter = ({ label, description, count, onDecrement, onIncrement, minCount = 0, maxCount = 10 }) => (
+  <div className="flex items-center justify-between py-2">
+    <div>
+      <div className="font-medium text-gray-900">{label}</div>
+      <div className="text-sm text-gray-500">{description}</div>
+    </div>
+    <div className="flex items-center space-x-3">
+      <button
+        type="button"
+        onClick={onDecrement}
+        disabled={count <= minCount}
+        className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 hover:scale-105 transition-all duration-200"
+      >
+        <Minus className="w-4 h-4" />
+      </button>
+      <span className="w-8 text-center font-medium">{count}</span>
+      <button
+        type="button"
+        onClick={onIncrement}
+        disabled={count >= maxCount}
+        className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 hover:scale-105 transition-all duration-200"
+      >
+        <Plus className="w-4 h-4" />
+      </button>
+    </div>
+  </div>
+);
+
+// Room Card Component
+const RoomCard = ({ room, isLarge = false, onClick, cardRef }) => {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick(room);
     }
-  ];
-
-  useEffect(() => {
-    const tl = gsap.timeline();
-
-    // Header animation
-    tl.fromTo(headerRef.current,
-      { opacity: 0, y: -50 },
-      { opacity: 1, y: 0, duration: 1, ease: "power3.out" }
-    );
-
-    // Form animation
-    tl.fromTo(formRef.current,
-      { opacity: 0, y: 30 },
-      { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" },
-      "-=0.5"
-    );
-
-    // Room cards stagger animation
-    tl.fromTo(roomCardRefs.current,
-      { opacity: 0, y: 50, scale: 0.9 },
-      { 
-        opacity: 1, 
-        y: 0, 
-        scale: 1, 
-        duration: 0.6, 
-        stagger: 0.1,
-        ease: "power2.out" 
-      },
-      "-=0.3"
-    );
-
-  }, []);
-
-  const handleRoomSelect = (room) => {
-    setSelectedRoom(room);
-    
-    // Animate selection
-    gsap.to(roomCardRefs.current[room.id - 1], {
-      scale: 0.95,
-      duration: 0.1,
-      yoyo: true,
-      repeat: 1,
-      ease: "power2.inOut"
-    });
   };
 
-  const handleApply = () => {
-    // Apply button animation
-    gsap.to(formRef.current.querySelector('.apply-btn'), {
-      scale: 0.95,
-      duration: 0.1,
-      yoyo: true,
-      repeat: 1,
-      ease: "power2.inOut"
-    });
+  const cardHeight = isLarge ? 'h-80 lg:h-96' : 'h-64 lg:h-80';
+  const cardCols = room.id === 1 ? 'md:col-span-1 lg:col-span-2' : room.id === 5 ? 'md:col-span-2 lg:col-span-1' : '';
+  const textSize = isLarge ? 'text-2xl' : 'text-lg';
+  const priceSize = isLarge ? 'text-lg' : 'text-base';
+  const padding = isLarge ? 'bottom-6 left-6' : 'bottom-4 left-4';
+  const buttonSize = isLarge ? 'w-10 h-10 top-6 right-6' : 'w-8 h-8 top-4 right-4';
+  const iconSize = isLarge ? 'w-5 h-5' : 'w-4 h-4';
+
+  return (
+    <div 
+      ref={cardRef}
+      className={`cursor-pointer group ${cardCols}`}
+      onClick={() => onClick(room)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      aria-label={`Select ${room.name} - ${room.price} per night`}
+    >
+      <div className={`relative ${cardHeight} rounded-2xl overflow-hidden bg-gray-200 transition-all duration-500 group-hover:shadow-2xl focus:ring-2 focus:ring-gray-900`}>
+        <img
+          src={room.image}
+          alt={room.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+        
+        <div className={`absolute ${padding} text-white`}>
+          <h3 className={`${textSize} font-light mb-2`}>{room.name}</h3>
+          <p className="text-sm opacity-90 mb-1">{room.beds} | {room.sleeps}</p>
+          <p className={`${priceSize} font-medium`}>
+            {room.price}
+            <span className="text-sm font-normal opacity-75">/night</span>
+          </p>
+        </div>
+        
+        <button 
+          className={`absolute ${buttonSize} bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110`}
+          aria-label="View room details"
+          tabIndex={-1}
+        >
+          <ArrowUpRight className={iconSize} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Date Input Component
+const DateInput = ({ id, label, value, onChange, min, icon: Icon = Calendar }) => (
+  <div className="space-y-2">
+    <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+      {label}
+    </label>
+    <div className="relative">
+      <input
+        id={id}
+        type="date"
+        value={value}
+        min={min}
+        onChange={onChange}
+        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 transition-all duration-200"
+      />
+      <Icon className="absolute right-3 top-3 w-5 h-5 text-gray-400 pointer-events-none" />
+    </div>
+  </div>
+);
+
+// Guest Dropdown Component
+const GuestDropdown = ({ 
+  adults, 
+  children, 
+  onGuestChange, 
+  showDropdown, 
+  onToggleDropdown, 
+  dropdownRef 
+}) => {
+  const getGuestText = () => {
+    const totalGuests = adults + children;
+    const guestText = totalGuests === 1 ? 'guest' : 'guests';
+    const childText = children > 0 ? `, ${children} ${children === 1 ? 'child' : 'children'}` : '';
+    return `${totalGuests} ${guestText}${childText}`;
+  };
+
+  const handleGuestChange = (type, operation) => {
+    if (type === 'adults') {
+      if (operation === 'increment' && adults < 10) {
+        onGuestChange(adults + 1, children);
+      } else if (operation === 'decrement' && adults > 1) {
+        onGuestChange(adults - 1, children);
+      }
+    } else if (type === 'children') {
+      if (operation === 'increment' && children < 10) {
+        onGuestChange(adults, children + 1);
+      } else if (operation === 'decrement' && children > 0) {
+        onGuestChange(adults, children - 1);
+      }
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="space-y-2 relative z-50" ref={dropdownRef}>
+      <label className="block text-sm font-medium text-gray-700">
+        Guests
+      </label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={onToggleDropdown}
+          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 transition-all duration-200 text-left bg-white hover:bg-gray-50"
+        >
+          {getGuestText()}
+        </button>
+        <ChevronDown className={`absolute right-3 top-3 w-5 h-5 text-gray-400 pointer-events-none transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
         
-        {/* Header */}
-        <div ref={headerRef} className="mb-12">
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-light text-gray-900 mb-2 tracking-tight">
-            BOOKING
-          </h1>
-        </div>
-
-        {/* Booking Form */}
-        <div ref={formRef} className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-            
-            {/* Check-in */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Check-in</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 transition-all duration-200"
-                />
-                <Calendar className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
-              </div>
-            </div>
-
-            {/* Check-out */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Check-out</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 transition-all duration-200"
-                />
-                <Calendar className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
-              </div>
-            </div>
-
-            {/* Guests */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Guests</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={guests}
-                  onChange={(e) => setGuests(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 transition-all duration-200"
-                />
-                <Users className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
-              </div>
-            </div>
-
-            {/* Apply Button */}
-            <button
-              onClick={handleApply}
-              className="apply-btn bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-105"
-            >
-              Apply
-            </button>
-          </div>
-        </div>
-
-        {/* Room Grid */}
-        <div ref={roomsRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          
-          {/* Large Deluxe Room */}
-          <div 
-            ref={el => roomCardRefs.current[0] = el}
-            className="md:col-span-1 lg:col-span-2 md:row-span-1 cursor-pointer group"
-            onClick={() => handleRoomSelect(rooms[0])}
-          >
-            <div className="relative h-80 lg:h-96 rounded-2xl overflow-hidden bg-gray-200 transition-all duration-500 group-hover:shadow-2xl">
-              <img
-                src={rooms[0].image}
-                alt={rooms[0].name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-              
-              <div className="absolute bottom-6 left-6 text-white">
-                <h3 className="text-2xl font-light mb-2">{rooms[0].name}</h3>
-                <p className="text-sm opacity-90 mb-1">{rooms[0].beds} | {rooms[0].sleeps}</p>
-              </div>
-              
-              <button className="absolute top-6 right-6 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110">
-                <ArrowUpRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Junior Suite */}
-          <div 
-            ref={el => roomCardRefs.current[1] = el}
-            className="cursor-pointer group"
-            onClick={() => handleRoomSelect(rooms[1])}
-          >
-            <div className="relative h-80 rounded-2xl overflow-hidden bg-gray-200 transition-all duration-500 group-hover:shadow-2xl">
-              <img
-                src={rooms[1].image}
-                alt={rooms[1].name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-              
-              <div className="absolute bottom-6 left-6 text-white">
-                <h3 className="text-lg font-light mb-2">{rooms[1].name}</h3>
-                <p className="text-sm opacity-90">{rooms[1].beds} | {rooms[1].sleeps}</p>
-              </div>
-              
-              <button className="absolute top-6 right-6 w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110">
-                <ArrowUpRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Suite */}
-          <div 
-            ref={el => roomCardRefs.current[2] = el}
-            className="cursor-pointer group"
-            onClick={() => handleRoomSelect(rooms[2])}
-          >
-            <div className="relative h-64 rounded-2xl overflow-hidden bg-gray-200 transition-all duration-500 group-hover:shadow-2xl">
-              <img
-                src={rooms[2].image}
-                alt={rooms[2].name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-              
-              <div className="absolute bottom-4 left-4 text-white">
-                <h3 className="text-lg font-light mb-1">{rooms[2].name}</h3>
-                <p className="text-xs opacity-90">{rooms[2].beds} | {rooms[2].sleeps}</p>
-              </div>
-              
-              <button className="absolute top-4 right-4 w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110">
-                <ArrowUpRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Twin Room */}
-          <div 
-            ref={el => roomCardRefs.current[3] = el}
-            className="cursor-pointer group"
-            onClick={() => handleRoomSelect(rooms[3])}
-          >
-            <div className="relative h-64 rounded-2xl overflow-hidden bg-gray-200 transition-all duration-500 group-hover:shadow-2xl">
-              <img
-                src={rooms[3].image}
-                alt={rooms[3].name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-              
-              <div className="absolute bottom-4 left-4 text-white">
-                <h3 className="text-lg font-light mb-1">{rooms[3].name}</h3>
-                <p className="text-xs opacity-90">{rooms[3].beds} | {rooms[3].sleeps}</p>
-              </div>
-              
-              <button className="absolute top-4 right-4 w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110">
-                <ArrowUpRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Superior Room - Spans 2 columns */}
-          <div 
-            ref={el => roomCardRefs.current[4] = el}
-            className="md:col-span-2 lg:col-span-1 cursor-pointer group"
-            onClick={() => handleRoomSelect(rooms[4])}
-          >
-            <div className="relative h-64 lg:h-80 rounded-2xl overflow-hidden bg-gray-200 transition-all duration-500 group-hover:shadow-2xl">
-              <img
-                src={rooms[4].image}
-                alt={rooms[4].name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-              
-              <div className="absolute bottom-6 left-6 text-white">
-                <h3 className="text-xl font-light mb-2">{rooms[4].name}</h3>
-                <p className="text-sm opacity-90">{rooms[4].beds} | {rooms[4].sleeps}</p>
-              </div>
-              
-              <button className="absolute top-6 right-6 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110">
-                <ArrowUpRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Selected Room Info */}
-        {selectedRoom && (
-          <div className="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-medium text-gray-900 mb-2">{selectedRoom.name}</h3>
-                <p className="text-gray-600">{selectedRoom.beds} | {selectedRoom.sleeps}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-light text-gray-900">{selectedRoom.price}</p>
-                <p className="text-sm text-gray-500">per night</p>
-              </div>
-            </div>
-            
-            <button className="w-full mt-6 bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02]">
-              Book {selectedRoom.name}
-            </button>
+        {showDropdown && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[60] p-4">
+            <GuestCounter
+              label="Adults"
+              description="Ages 13 or above"
+              count={adults}
+              onDecrement={() => handleGuestChange('adults', 'decrement')}
+              onIncrement={() => handleGuestChange('adults', 'increment')}
+              minCount={1}
+            />
+            <div className="my-3 border-t border-gray-100"></div>
+            <GuestCounter
+              label="Children"
+              description="Ages 2-12"
+              count={children}
+              onDecrement={() => handleGuestChange('children', 'decrement')}
+              onIncrement={() => handleGuestChange('children', 'increment')}
+            />
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+// Validation Messages Component
+const ValidationMessages = ({ isValid }) => {
+  if (isValid) return null;
+  
+  return (
+    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+      <p className="text-sm text-red-600">
+        Please select valid dates. Check-in must be today or later, and check-out must be after check-in.
+      </p>
+    </div>
+  );
+};
+
+// Selected Room Info Component
+const SelectedRoomInfo = ({ room, adults, children, onBookRoom, isDateValid }) => {
+  const totalGuests = adults + children;
+  const exceedsCapacity = totalGuests > room.maxGuests;
+  const canBook = isDateValid && !exceedsCapacity;
+
+  return (
+    <div className="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-xl font-medium text-gray-900 mb-2">{room.name}</h3>
+          <p className="text-gray-600">{room.beds} | {room.sleeps}</p>
+          <p className="text-sm text-gray-500 mt-1">Maximum {room.maxGuests} guests</p>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-light text-gray-900">{room.price}</p>
+          <p className="text-sm text-gray-500">per night</p>
+        </div>
+      </div>
+      
+      {exceedsCapacity && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm text-amber-700">
+            This room accommodates up to {room.maxGuests} guests. You have selected {totalGuests} guests.
+          </p>
+        </div>
+      )}
+      
+      <button 
+        onClick={onBookRoom}
+        className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-black"
+        disabled={!canBook}
+      >
+        Book {room.name}
+      </button>
+    </div>
+  );
+};
+
+const BookingPage = () => {
+  // State management
+  const [checkIn, setCheckIn] = useState(getTodayDate());
+  const [checkOut, setCheckOut] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 3);
+    return getFormattedDate(tomorrow);
+  });
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [showGuestDropdown, setShowGuestDropdown] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  
+  // Refs
+  const headerRef = useRef(null);
+  const formRef = useRef(null);
+  const roomCardRefs = useRef([]);
+  const guestDropdownRef = useRef(null);
+  
+  // Hooks
+  const navigate = useNavigate();
+
+  // Effects
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (guestDropdownRef.current && !guestDropdownRef.current.contains(event.target)) {
+        setShowGuestDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    // Apply CSS animations
+    if (headerRef.current) {
+      headerRef.current.style.animation = 'fadeInUp 1s ease-out';
+    }
+    if (formRef.current) {
+      formRef.current.style.animation = 'fadeInUp 0.8s ease-out 0.2s both';
+    }
+    roomCardRefs.current.forEach((card, index) => {
+      if (card) {
+        card.style.animation = `fadeInUp 0.6s ease-out ${0.4 + index * 0.1}s both`;
+      }
+    });
+  }, []);
+
+  // Event handlers
+  const handleRoomSelect = (room) => {
+    setSelectedRoom(room);
+    
+    // Add selection animation
+    const card = roomCardRefs.current[room.id - 1];
+    if (card) {
+      card.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        card.style.transform = 'scale(1)';
+      }, 100);
+    }
+  };
+
+  const handleApply = () => {
+    console.log('Searching rooms:', {
+      checkIn,
+      checkOut,
+      adults,
+      children
+    });
+    setShowGuestDropdown(false);
+  };
+
+  const handleBookRoom = () => {
+    if (!selectedRoom || !isDateValid(checkIn, checkOut) || (adults + children) > selectedRoom.maxGuests) {
+      return;
+    }
+
+    navigate('/checkout', {
+      state: {
+        room: selectedRoom,
+        checkIn,
+        checkOut,
+        adults,
+        children,
+        totalGuests: adults + children
+      }
+    });
+  };
+
+  const handleGuestChange = (newAdults, newChildren) => {
+    setAdults(newAdults);
+    setChildren(newChildren);
+  };
+
+  // Computed values
+  const dateValid = isDateValid(checkIn, checkOut);
+  const minCheckOutDate = getMinCheckOutDate(checkIn);
+
+  return (
+    <div>
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          
+          {/* Header */}
+          <header ref={headerRef} className="mb-12">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-light text-gray-900 mb-2 tracking-tight">
+              BOOKING
+            </h1>
+          </header>
+
+          {/* Booking Form */}
+          <section ref={formRef} className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mb-12 relative overflow-visible">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+              
+              <DateInput
+                id="checkin"
+                label="Check-in"
+                value={checkIn}
+                onChange={(e) => setCheckIn(e.target.value)}
+                min={getTodayDate()}
+              />
+
+              <DateInput
+                id="checkout"
+                label="Check-out"
+                value={checkOut}
+                onChange={(e) => setCheckOut(e.target.value)}
+                min={minCheckOutDate}
+              />
+
+              <GuestDropdown
+                adults={adults}
+                children={children}
+                onGuestChange={handleGuestChange}
+                showDropdown={showGuestDropdown}
+                onToggleDropdown={() => setShowGuestDropdown(!showGuestDropdown)}
+                dropdownRef={guestDropdownRef}
+              />
+
+              <button
+                onClick={handleApply}
+                disabled={!dateValid}
+                className="bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-black"
+              >
+                Apply
+              </button>
+            </div>
+            
+            <ValidationMessages isValid={dateValid} />
+          </section>
+
+          {/* Room Grid */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {ROOMS.map((room, index) => (
+              <RoomCard
+                key={room.id}
+                room={room}
+                isLarge={room.id === 1}
+                onClick={handleRoomSelect}
+                cardRef={el => roomCardRefs.current[room.id - 1] = el}
+              />
+            ))}
+          </section>
+
+          {/* Selected Room Info */}
+          {selectedRoom && (
+            <SelectedRoomInfo
+              room={selectedRoom}
+              adults={adults}
+              children={children}
+              onBookRoom={handleBookRoom}
+              isDateValid={dateValid}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

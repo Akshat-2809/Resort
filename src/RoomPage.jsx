@@ -455,5 +455,4 @@ const HotelRooms = () => {
     </motion.div>
   );
 };
-
 export default HotelRooms;
