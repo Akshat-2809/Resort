@@ -1,12 +1,40 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, Calendar, Users, CreditCard, Lock, Check, AlertCircle } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom'; // Add these imports
+import { useLocation, useNavigate } from 'react-router-dom';
+
+const InputField = React.memo(({ label, name, type = 'text', placeholder, className = '', maxLength, onChange, value, error, ...props }) => (
+  <div className={className}>
+    <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-2">
+      {label} *
+    </label>
+    <input
+      type={type}
+      id={name}
+      name={name}
+      value={value || ''}
+      onChange={onChange}
+      maxLength={maxLength}
+      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-200 ${
+        error ? 'border-red-300 bg-red-50' : 'border-gray-200'
+      }`}
+      placeholder={placeholder}
+      autoComplete="off"
+      spellCheck="false"
+      {...props}
+    />
+    {error && (
+      <p className="mt-1 text-sm text-red-600 flex items-center">
+        <AlertCircle className="w-4 h-4 mr-1" />
+        {error}
+      </p>
+    )}
+  </div>
+));
 
 const CheckoutPage = ({ onBack }) => {
-  const location = useLocation(); // Get the location object
-  const navigate = useNavigate(); // Get navigate function
+  const location = useLocation();
+  const navigate = useNavigate();
   
-  // Get booking data from navigation state
   const bookingData = location.state;
   
   const [formData, setFormData] = useState({
@@ -22,10 +50,8 @@ const CheckoutPage = ({ onBack }) => {
   const formRef = useRef(null);
 
   useEffect(() => {
-    // Scroll to top when component mounts
     window.scrollTo(0, 0);
     
-    // Apply animations
     [headerRef, summaryRef, formRef].forEach((ref, i) => {
       if (ref.current) {
         ref.current.style.animation = `fadeInUp 0.8s ease-out ${i * 0.2}s both`;
@@ -33,7 +59,6 @@ const CheckoutPage = ({ onBack }) => {
     });
   }, []);
 
-  // Default booking data for demo (only used if no booking data is passed)
   const defaultBooking = {
     room: {
       name: "Luxury Suite",
@@ -48,14 +73,10 @@ const CheckoutPage = ({ onBack }) => {
     children: 0
   };
 
-  // Use passed booking data or fall back to default
   const booking = bookingData || defaultBooking;
   const { room, checkIn, checkOut, adults, children = 0 } = booking;
-
-  // Default back handler
   const handleBack = onBack || (() => navigate('/'));
 
-  // Calculate pricing
   const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
   const roomPrice = parseFloat(room.price.replace('$', ''));
   const subtotal = roomPrice * nights;
@@ -66,38 +87,68 @@ const CheckoutPage = ({ onBack }) => {
     weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' 
   });
 
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
-  };
+    
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  }, [errors]);
 
-  const formatCardNumber = (value) => {
+  const formatCardNumber = useCallback((value) => {
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
     return v.match(/.{1,4}/g)?.join(' ') || v;
-  };
+  }, []);
 
-  const formatExpiryDate = (value) => {
+  const formatExpiryDate = useCallback((value) => {
     const v = value.replace(/\D/g, '');
     return v.length >= 2 ? v.substring(0, 2) + '/' + v.substring(2, 4) : v;
-  };
+  }, []);
 
-  const handleCardNumberChange = (e) => {
+  const handleCardNumberChange = useCallback((e) => {
     const formatted = formatCardNumber(e.target.value);
-    if (formatted.length <= 19) setFormData(prev => ({ ...prev, cardNumber: formatted }));
-  };
+    if (formatted.length <= 19) {
+      setFormData(prev => ({ ...prev, cardNumber: formatted }));
+      
+      if (errors.cardNumber) {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.cardNumber;
+          return newErrors;
+        });
+      }
+    }
+  }, [formatCardNumber, errors.cardNumber]);
 
-  const handleExpiryChange = (e) => {
+  const handleExpiryChange = useCallback((e) => {
     const formatted = formatExpiryDate(e.target.value);
-    if (formatted.length <= 5) setFormData(prev => ({ ...prev, expiryDate: formatted }));
-  };
+    if (formatted.length <= 5) {
+      setFormData(prev => ({ ...prev, expiryDate: formatted }));
+      
+      if (errors.expiryDate) {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.expiryDate;
+          return newErrors;
+        });
+      }
+    }
+  }, [formatExpiryDate, errors.expiryDate]);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'country', 'zipCode', 'cardNumber', 'expiryDate', 'cvv', 'cardName'];
     const newErrors = {};
     
     required.forEach(field => {
-      if (!formData[field].trim()) newErrors[field] = `${field.replace(/([A-Z])/g, ' $1').toLowerCase()} is required`;
+      if (!formData[field].trim()) {
+        const fieldName = field.replace(/([A-Z])/g, ' $1').toLowerCase();
+        newErrors[field] = `${fieldName} is required`;
+      }
     });
 
     if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
@@ -107,9 +158,9 @@ const CheckoutPage = ({ onBack }) => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -120,38 +171,13 @@ const CheckoutPage = ({ onBack }) => {
       setTimeout(() => {
         const confirmationNumber = `HTL${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         alert(`Booking confirmed! Confirmation: ${confirmationNumber}`);
+        setTimeout(() => {
+          navigate('/');
+        }, 3000);
       }, 2000);
     }, 2000);
-  };
+  }, [validateForm, navigate]);
 
-  const InputField = ({ label, name, type = 'text', placeholder, className = '', maxLength, onChange, ...props }) => (
-    <div className={className}>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-2">
-        {label} *
-      </label>
-      <input
-        type={type}
-        id={name}
-        name={name}
-        value={formData[name]}
-        onChange={onChange || handleInputChange}
-        maxLength={maxLength}
-        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-200 ${
-          errors[name] ? 'border-red-300 bg-red-50' : 'border-gray-200'
-        }`}
-        placeholder={placeholder}
-        {...props}
-      />
-      {errors[name] && (
-        <p className="mt-1 text-sm text-red-600 flex items-center">
-          <AlertCircle className="w-4 h-4 mr-1" />
-          {errors[name]}
-        </p>
-      )}
-    </div>
-  );
-
-  // Show error message if no booking data and not using default
   if (!bookingData && !booking) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -252,14 +278,73 @@ const CheckoutPage = ({ onBack }) => {
                   <h2 className="text-xl font-medium text-gray-900 mb-6">Personal Information</h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <InputField label="First Name" name="firstName" placeholder="Your" />
-                    <InputField label="Last Name" name="lastName" placeholder="Name" />
-                    <InputField label="Email Address" name="email" type="email" placeholder="name@example.com" />
-                    <InputField label="Phone Number" name="phone" type="tel" placeholder="+1 (555) 123-4567" />
-                    <InputField label="Address" name="address" placeholder="123 Main Street" className="md:col-span-2" />
-                    <InputField label="City" name="city" placeholder="New York" />
-                    <InputField label="Country" name="country" placeholder="United States" />
-                    <InputField label="ZIP Code" name="zipCode" placeholder="10001" />
+                    <InputField 
+                      label="First Name" 
+                      name="firstName" 
+                      placeholder="Your" 
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      error={errors.firstName}
+                    />
+                    <InputField 
+                      label="Last Name" 
+                      name="lastName" 
+                      placeholder="Name" 
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      error={errors.lastName}
+                    />
+                    <InputField 
+                      label="Email Address" 
+                      name="email" 
+                      type="email" 
+                      placeholder="name@example.com" 
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      error={errors.email}
+                    />
+                    <InputField 
+                      label="Phone Number" 
+                      name="phone" 
+                      type="tel" 
+                      placeholder="+1 (555) 123-4567" 
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      error={errors.phone}
+                    />
+                    <InputField 
+                      label="Address" 
+                      name="address" 
+                      placeholder="123 Main Street" 
+                      className="md:col-span-2" 
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      error={errors.address}
+                    />
+                    <InputField 
+                      label="City" 
+                      name="city" 
+                      placeholder="New York" 
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      error={errors.city}
+                    />
+                    <InputField 
+                      label="Country" 
+                      name="country" 
+                      placeholder="United States" 
+                      value={formData.country}
+                      onChange={handleInputChange}
+                      error={errors.country}
+                    />
+                    <InputField 
+                      label="ZIP Code" 
+                      name="zipCode" 
+                      placeholder="10001" 
+                      value={formData.zipCode}
+                      onChange={handleInputChange}
+                      error={errors.zipCode}
+                    />
                   </div>
                 </div>
 
@@ -276,18 +361,37 @@ const CheckoutPage = ({ onBack }) => {
                       label="Card Number" 
                       name="cardNumber" 
                       placeholder="1234 5678 9012 3456"
+                      value={formData.cardNumber}
                       onChange={handleCardNumberChange}
+                      error={errors.cardNumber}
                     />
                     <div className="grid grid-cols-2 gap-6">
                       <InputField 
                         label="Expiry Date" 
                         name="expiryDate" 
                         placeholder="MM/YY"
+                        value={formData.expiryDate}
                         onChange={handleExpiryChange}
+                        error={errors.expiryDate}
                       />
-                      <InputField label="CVV" name="cvv" placeholder="123" maxLength="4" />
+                      <InputField 
+                        label="CVV" 
+                        name="cvv" 
+                        placeholder="123" 
+                        maxLength="4" 
+                        value={formData.cvv}
+                        onChange={handleInputChange}
+                        error={errors.cvv}
+                      />
                     </div>
-                    <InputField label="Cardholder Name" name="cardName" placeholder="Your Name" />
+                    <InputField 
+                      label="Cardholder Name" 
+                      name="cardName" 
+                      placeholder="Your Name" 
+                      value={formData.cardName}
+                      onChange={handleInputChange}
+                      error={errors.cardName}
+                    />
                   </div>
 
                   <div className="mt-6 p-4 bg-gray-50 rounded-lg">
