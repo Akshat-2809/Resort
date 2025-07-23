@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, Users, ArrowUpRight, Plus, Minus, ChevronDown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 // Room data
 const ROOMS = [
@@ -168,7 +167,7 @@ const RoomCard = ({ room, isLarge = false, onClick, cardRef }) => {
 };
 
 // Date Input Component
-const DateInput = ({ id, label, value, onChange, min, icon: Icon = Calendar }) => (
+const DateInput = ({ id, label, value, onChange, min }) => (
   <div className="space-y-2">
     <label htmlFor={id} className="block text-sm font-medium text-gray-700">
       {label}
@@ -182,7 +181,6 @@ const DateInput = ({ id, label, value, onChange, min, icon: Icon = Calendar }) =
         onChange={onChange}
         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 transition-all duration-200"
       />
-      <Icon className="absolute right-3 top-3 w-5 h-5 text-gray-400 pointer-events-none" />
     </div>
   </div>
 );
@@ -329,9 +327,6 @@ const BookingPage = () => {
   const formRef = useRef(null);
   const roomCardRefs = useRef([]);
   const guestDropdownRef = useRef(null);
-  
-  // Hooks
-  const navigate = useNavigate();
 
   // Effects
   useEffect(() => {
@@ -389,16 +384,25 @@ const BookingPage = () => {
       return;
     }
 
-    navigate('/checkout', {
-      state: {
-        room: selectedRoom,
-        checkIn,
-        checkOut,
-        adults,
-        children,
-        totalGuests: adults + children
-      }
-    });
+    // Create booking data to pass to checkout
+    const bookingData = {
+      room: selectedRoom,
+      checkIn,
+      checkOut,
+      adults,
+      children,
+      totalGuests: adults + children
+    };
+
+    // Store booking data in sessionStorage for the checkout page
+    try {
+      sessionStorage.setItem('bookingData', JSON.stringify(bookingData));
+    } catch (error) {
+      console.warn('SessionStorage not available, using fallback');
+    }
+
+    // Navigate to checkout page
+    window.location.href = '/checkout';
   };
 
   const handleGuestChange = (newAdults, newChildren) => {

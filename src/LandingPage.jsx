@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const LuxeEscape = () => {
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +25,18 @@ const LuxeEscape = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isMobileMenuOpen && !event.target.closest('.mobile-menu-container')) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isMobileMenuOpen]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -114,6 +127,50 @@ const LuxeEscape = () => {
       }
     }
   };
+
+  const mobileMenuVariants = {
+    hidden: {
+      opacity: 0,
+      y: -20,
+      scale: 0.95
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.2,
+        ease: "easeOut"
+      }
+    },
+    exit: {
+      opacity: 0,
+      y: -10,
+      scale: 0.95,
+      transition: {
+        duration: 0.15,
+        ease: "easeIn"
+      }
+    }
+  };
+
+  const mobileMenuItemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i) => ({
+      opacity: 1,
+      x: 0,
+      transition: {
+        delay: i * 0.1,
+        duration: 0.3,
+        ease: "easeOut"
+      }
+    })
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
@@ -121,7 +178,7 @@ const LuxeEscape = () => {
         variants={navVariants}
         initial="hidden"
         animate={isNavVisible ? "scrollVisible" : "scrollHidden"}
-        className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm px-6 py-4 shadow-sm"
+        className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm px-6 py-4 shadow-sm mobile-menu-container"
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <motion.div 
@@ -132,6 +189,7 @@ const LuxeEscape = () => {
             Luxe Escape
           </motion.div>
           
+          {/* Desktop Navigation */}
           <div className="hidden md:flex space-x-8">
             {['Hotel', 'Rooms', 'Restaurant', 'Booking'].map((item, index) => (
               <motion.a
@@ -151,14 +209,66 @@ const LuxeEscape = () => {
 
           {/* Mobile Menu Button */}
           <motion.button 
-            className="md:hidden p-2 text-gray-700"
+            className="md:hidden p-2 text-gray-700 relative z-60"
             whileTap={{ scale: 0.95 }}
+            onClick={toggleMobileMenu}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <motion.div
+              animate={isMobileMenuOpen ? { rotate: 180 } : { rotate: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {isMobileMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </motion.div>
           </motion.button>
         </div>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              variants={mobileMenuVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-sm shadow-lg rounded-b-2xl border-t border-gray-100"
+            >
+              <div className="px-6 py-4 space-y-4">
+                {['Hotel', 'Rooms', 'Restaurant', 'Booking'].map((item, index) => (
+                  <motion.a
+                    key={item}
+                    href="#"
+                    variants={mobileMenuItemVariants}
+                    initial="hidden"
+                    animate="visible"
+                    custom={index}
+                    className="block text-gray-700 font-medium py-2 hover:text-orange-600 transition-colors duration-200"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item}
+                  </motion.a>
+                ))}
+                <motion.button
+                  variants={mobileMenuItemVariants}
+                  initial="hidden"
+                  animate="visible"
+                  custom={4}
+                  className="w-full bg-black text-white px-6 py-3 rounded-full text-sm font-medium mt-4"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Book now
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.nav>
 
       {/* Main Content Container */}
