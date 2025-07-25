@@ -57,7 +57,7 @@ const RestaurantInfo = () => {
           <div className="flex items-center justify-center mb-8">
             <div className="w-16 h-px bg-gray-400"></div>
             <h1 className="text-4xl md:text-5xl font-light text-gray-800 mx-8 tracking-wide">
-              FINE DINING AT TAJ RESTAURANTS
+              FINE DINING AT OUR RESTAURANTS
             </h1>
             <div className="w-16 h-px bg-gray-400"></div>
           </div>
