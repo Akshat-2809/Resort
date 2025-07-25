@@ -6,6 +6,9 @@ import Restraunt from './Restaurant.jsx';
 import VideoPage from './VideoPage.jsx';
 import BookingPage from './BookingPage.jsx';
 import CheckoutPage from './CheckoutPage.jsx';
+import RestaurantInfo from './RestaurantInfo.jsx';
+import Footer from './Footer.jsx';
+
 
 function App() {
   return (
@@ -18,9 +21,11 @@ function App() {
             <Restraunt />
             <VideoPage />
             <BookingPage />
+            <Footer/>
           </>
         } />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/restaurantinfo" element={<RestaurantInfo />} />
       </Routes>
     </BrowserRouter>
   );

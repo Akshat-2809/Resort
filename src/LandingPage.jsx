@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom'; // Import Link from react-router-dom
 
 const LuxeEscape = () => {
   const [isNavVisible, setIsNavVisible] = useState(true);
@@ -192,18 +193,18 @@ const LuxeEscape = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex space-x-8">
             {['Hotel', 'Rooms', 'Restaurant', 'Booking'].map((item, index) => (
-              <motion.a
-                key={item}
-                href="#"
-                variants={navItemVariants}
-                whileHover="hover"
-                className="text-gray-700 font-medium transition-colors duration-200"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
-              >
-                {item}
-              </motion.a>
+              <Link to={item === 'Restaurant' ? '/restaurantinfo' : '#'} key={item} className="text-gray-700 font-medium transition-colors duration-200">
+                <motion.a
+                  variants={navItemVariants}
+                  whileHover="hover"
+                  className="text-gray-700 font-medium transition-colors duration-200"
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
+                >
+                  {item}
+                </motion.a>
+              </Link>
             ))}
           </div>
 
@@ -242,18 +243,18 @@ const LuxeEscape = () => {
             >
               <div className="px-6 py-4 space-y-4">
                 {['Hotel', 'Rooms', 'Restaurant', 'Booking'].map((item, index) => (
-                  <motion.a
-                    key={item}
-                    href="#"
-                    variants={mobileMenuItemVariants}
-                    initial="hidden"
-                    animate="visible"
-                    custom={index}
-                    className="block text-gray-700 font-medium py-2 hover:text-orange-600 transition-colors duration-200"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item}
-                  </motion.a>
+                  <Link to={item === 'Restaurant' ? '/restaurantinfo' : '#'} key={item} className="text-gray-700 font-medium py-2 hover:text-orange-600 transition-colors duration-200">
+                    <motion.a
+                      variants={mobileMenuItemVariants}
+                      initial="hidden"
+                      animate="visible"
+                      custom={index}
+                      className="block text-gray-700 font-medium py-2 hover:text-orange-600 transition-colors duration-200"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item}
+                    </motion.a>
+                  </Link>
                 ))}
                 <motion.button
                   variants={mobileMenuItemVariants}

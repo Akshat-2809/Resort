@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const RestaurantHero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -140,15 +141,17 @@ const RestaurantHero = () => {
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.7 }}
             >
-              <motion.button
-                className="bg-black text-white px-12 py-4 rounded-full font-medium text-sm tracking-wider uppercase hover:shadow-lg transition-shadow duration-300"
-                variants={buttonVariants}
-                initial="idle"
-                whileHover="hover"
-                whileTap="tap"
-              >
-                Reservation
-              </motion.button>
+              <Link to="/restaurantinfo">
+                <motion.button
+                  className="bg-black text-white px-12 py-4 rounded-full font-medium text-sm tracking-wider uppercase hover:shadow-lg transition-shadow duration-300"
+                  variants={buttonVariants}
+                  initial="idle"
+                  whileHover="hover"
+                  whileTap="tap"
+                >
+                  Reservation
+                </motion.button>
+              </Link>
             </motion.div>
           </motion.div>
 

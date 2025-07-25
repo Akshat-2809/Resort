@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Calendar, Users, CreditCard, Lock, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, CreditCard, Lock, Check, AlertCircle, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const InputField = React.memo(({ label, name, type = 'text', placeholder, className = '', maxLength, onChange, value, error, ...props }) => (
@@ -31,6 +31,44 @@ const InputField = React.memo(({ label, name, type = 'text', placeholder, classN
   </div>
 ));
 
+const SuccessNotification = ({ isVisible, countdown, onCancel }) => {
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 animate-fadeIn">
+      <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl animate-slideUp relative z-10">
+        <div className="text-center">
+          {/* Success Icon with Animation */}
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+            <Check className="w-10 h-10 text-green-600" />
+          </div>
+          
+          {/* Success Message */}
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
+          <p className="text-gray-600 mb-6">Your reservation has been successfully processed.</p>
+          
+          {/* Countdown Timer */}
+          {countdown > 0 && (
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-gray-600 mb-2">Redirecting to homepage in</p>
+              <div className="text-3xl font-bold text-gray-900 animate-pulse">{countdown}</div>
+            </div>
+          )}
+          
+          {/* Cancel Button */}
+          <button
+            onClick={onCancel}
+            className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Stay on this page
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -45,10 +83,13 @@ const CheckoutPage = () => {
   const [errors, setErrors] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   const headerRef = useRef(null);
   const summaryRef = useRef(null);
   const formRef = useRef(null);
+  const countdownTimerRef = useRef(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -60,34 +101,28 @@ const CheckoutPage = () => {
     });
   }, []);
 
-  // Default booking data for fallback
-  const defaultBooking = {
-    room: {
-      name: "Luxury Suite",
-      image: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=400&h=300&fit=crop",
-      beds: "King bed",
-      sleeps: "Sleeps 2",
-      price: "$299"
-    },
-    checkIn: "2025-08-01",
-    checkOut: "2025-08-03",
-    adults: 2,
-    children: 0
-  };
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    };
+  }, []);
 
-  // Use bookingData if available, otherwise use default
-  const booking = bookingData || defaultBooking;
+  // Use bookingData directly
+  const booking = bookingData;
   
-  // Safely destructure with fallbacks
+  // Safely destructure
   const {
-    room = defaultBooking.room,
-    checkIn = defaultBooking.checkIn,
-    checkOut = defaultBooking.checkOut,
-    adults = defaultBooking.adults,
-    children = defaultBooking.children
+    room,
+    checkIn,
+    checkOut,
+    adults,
+    children
   } = booking;
 
-  // If no booking data and no default, show error page
+  // If no booking data, show error page
   if (!bookingData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -207,6 +242,28 @@ const CheckoutPage = () => {
     return Object.keys(newErrors).length === 0;
   }, [formData]);
 
+  const startCountdown = useCallback(() => {
+    setCountdown(5);
+    countdownTimerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownTimerRef.current);
+          navigate('/');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [navigate]);
+
+  const cancelRedirect = useCallback(() => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+    }
+    setShowNotification(false);
+    setCountdown(0);
+  }, []);
+
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -215,15 +272,14 @@ const CheckoutPage = () => {
     setTimeout(() => {
       setIsProcessing(false);
       setShowSuccess(true);
+      setShowNotification(true);
+      
+      // Start countdown after 3 seconds
       setTimeout(() => {
-        const confirmationNumber = `HTL${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-        alert(`Booking confirmed! Confirmation: ${confirmationNumber}`);
-        setTimeout(() => {
-          navigate('/');
-        }, 3000);
-      }, 2000);
+        startCountdown();
+      }, 3000);
     }, 2000);
-  }, [validateForm, navigate]);
+  }, [validateForm, startCountdown]);
 
   return (
     <div>
@@ -232,12 +288,29 @@ const CheckoutPage = () => {
           from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(50px) scale(0.9); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .processing-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+        .animate-slideUp { animation: slideUp 0.4s ease-out; }
       `}</style>
 
+      {/* Success Notification */}
+      <SuccessNotification 
+        isVisible={showNotification} 
+        countdown={countdown} 
+        onCancel={cancelRedirect} 
+      />
+
       <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+        <div className={`max-w-7xl mx-auto transition-all duration-500 ${showNotification ? 'blur-sm pointer-events-none' : ''}`}>
           
           {/* Header */}
           <div ref={headerRef} className="mb-8">
@@ -257,7 +330,7 @@ const CheckoutPage = () => {
                 
                 <div className="relative h-48 rounded-lg overflow-hidden mb-4">
                   <img 
-                    src={room?.image || defaultBooking.room.image} 
+                    src={room?.image} 
                     alt={room?.name || 'Hotel Room'} 
                     className="w-full h-full object-cover" 
                   />
