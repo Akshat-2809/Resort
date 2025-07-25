@@ -152,7 +152,7 @@ const HotelRooms = () => {
 
   return (
     <motion.div 
-      className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-gradient-to-br from-slate-50 to-white"
+      className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
       variants={containerVariants}
       initial="hidden"
       animate="visible"

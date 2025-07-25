@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, Users, ArrowUpRight, Plus, Minus, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar, Users, ArrowUpRight, Plus, Minus, ChevronDown, Loader2 } from 'lucide-react';
 
 // Room data
 const ROOMS = [
@@ -271,13 +272,13 @@ const ValidationMessages = ({ isValid }) => {
 };
 
 // Selected Room Info Component
-const SelectedRoomInfo = ({ room, adults, children, onBookRoom, isDateValid }) => {
+const SelectedRoomInfo = ({ room, adults, children, onBookRoom, isDateValid, isBookingLoading, selectedRoomRef }) => {
   const totalGuests = adults + children;
   const exceedsCapacity = totalGuests > room.maxGuests;
   const canBook = isDateValid && !exceedsCapacity;
 
   return (
-    <div className="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <div ref={selectedRoomRef} className="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-xl font-medium text-gray-900 mb-2">{room.name}</h3>
@@ -300,16 +301,26 @@ const SelectedRoomInfo = ({ room, adults, children, onBookRoom, isDateValid }) =
       
       <button 
         onClick={onBookRoom}
-        className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-black"
-        disabled={!canBook}
+        className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-black flex items-center justify-center"
+        disabled={!canBook || isBookingLoading}
       >
-        Book {room.name}
+        {isBookingLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Booking...
+          </>
+        ) : (
+          `Book ${room.name}`
+        )}
       </button>
     </div>
   );
 };
 
 const BookingPage = () => {
+  // React Router navigation
+  const navigate = useNavigate();
+  
   // State management
   const [checkIn, setCheckIn] = useState(getTodayDate());
   const [checkOut, setCheckOut] = useState(() => {
@@ -321,12 +332,16 @@ const BookingPage = () => {
   const [children, setChildren] = useState(0);
   const [showGuestDropdown, setShowGuestDropdown] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  
+  const [isApplyLoading, setIsApplyLoading] = useState(false);
+  const [isBookingLoading, setIsBookingLoading] = useState(false);
+  // const [showToast, setShowToast] = useState(false); // Uncomment for pop-up message approach
+
   // Refs
   const headerRef = useRef(null);
   const formRef = useRef(null);
   const roomCardRefs = useRef([]);
   const guestDropdownRef = useRef(null);
+  const selectedRoomRef = useRef(null);
 
   // Effects
   useEffect(() => {
@@ -355,6 +370,22 @@ const BookingPage = () => {
     });
   }, []);
 
+  // Scroll to SelectedRoomInfo when selectedRoom changes
+  useEffect(() => {
+    if (selectedRoom && selectedRoomRef.current) {
+      // Use setTimeout to ensure DOM is updated
+      setTimeout(() => {
+        const element = selectedRoomRef.current;
+        const offset = 100; // Adjust offset to account for fixed headers or padding
+        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo({
+          top: elementPosition - offset,
+          behavior: 'smooth',
+        });
+      }, 0);
+    }
+  }, [selectedRoom]);
+
   // Event handlers
   const handleRoomSelect = (room) => {
     setSelectedRoom(room);
@@ -367,22 +398,40 @@ const BookingPage = () => {
         card.style.transform = 'scale(1)';
       }, 100);
     }
+
+    // Scroll is handled by useEffect
+    // Alternative: Show toast message
+    /*
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000); // Hide toast after 3 seconds
+    */
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
+    setIsApplyLoading(true);
+    
     console.log('Searching rooms:', {
       checkIn,
       checkOut,
       adults,
       children
     });
+    
+    // Simulate search/loading delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     setShowGuestDropdown(false);
+    setIsApplyLoading(false);
   };
 
-  const handleBookRoom = () => {
+  const handleBookRoom = async () => {
     if (!selectedRoom || !isDateValid(checkIn, checkOut) || (adults + children) > selectedRoom.maxGuests) {
       return;
     }
+
+    setIsBookingLoading(true);
 
     // Create booking data to pass to checkout
     const bookingData = {
@@ -394,15 +443,13 @@ const BookingPage = () => {
       totalGuests: adults + children
     };
 
-    // Store booking data in sessionStorage for the checkout page
-    try {
-      sessionStorage.setItem('bookingData', JSON.stringify(bookingData));
-    } catch (error) {
-      console.warn('SessionStorage not available, using fallback');
-    }
+    // Simulate booking process delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Navigate to checkout page
-    window.location.href = '/checkout';
+    // Navigate to checkout page with booking data as state
+    navigate('/checkout', { 
+      state: { bookingData } 
+    });
   };
 
   const handleGuestChange = (newAdults, newChildren) => {
@@ -417,8 +464,15 @@ const BookingPage = () => {
   return (
     <div>
       <style>{`
+        html {
+          scroll-behavior: smooth;
+        }
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes toastSlideIn {
+          from { opacity: 0; transform: translateY(100%); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
@@ -464,10 +518,17 @@ const BookingPage = () => {
 
               <button
                 onClick={handleApply}
-                disabled={!dateValid}
-                className="bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-black"
+                disabled={!dateValid || isApplyLoading}
+                className="bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-black flex items-center justify-center"
               >
-                Apply
+                {isApplyLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  'Apply'
+                )}
               </button>
             </div>
             
@@ -480,7 +541,7 @@ const BookingPage = () => {
               <RoomCard
                 key={room.id}
                 room={room}
-                isLarge={room.id === 1}
+                isLarge={room.id === 1 || room.id === 2}
                 onClick={handleRoomSelect}
                 cardRef={el => roomCardRefs.current[room.id - 1] = el}
               />
@@ -495,8 +556,19 @@ const BookingPage = () => {
               children={children}
               onBookRoom={handleBookRoom}
               isDateValid={dateValid}
+              isBookingLoading={isBookingLoading}
+              selectedRoomRef={selectedRoomRef}
             />
           )}
+
+          {/* Toast Notification (Alternative to Auto-Scroll) */}
+          {/*
+          {showToast && (
+            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg z-[100] animate-[toastSlideIn_0.5s_ease-out]">
+              <p className="text-sm">Scroll down to complete your booking for {selectedRoom.name}!</p>
+            </div>
+          )}
+          */}
         </div>
       </div>
     </div>

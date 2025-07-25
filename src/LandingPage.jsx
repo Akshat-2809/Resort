@@ -172,7 +172,7 @@ const LuxeEscape = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Navigation Bar */}
       <motion.nav 
         variants={navVariants}
@@ -326,9 +326,9 @@ const LuxeEscape = () => {
           variants={imageVariants}
           initial="hidden"
           animate="visible"
-          className="w-full h-1/2 relative rounded-3xl overflow-hidden"
+          className="w-full h-1/2 relative  overflow-hidden"
         >
-          <img src="/LandingPage.webp" alt="Hotel Lobby" className="w-full h-full object-cover" />
+          <img src="/LandingPage.webp" alt="Hotel Lobby" className="w-full h-full object-fit p-6 rounded-2xl" />
         </motion.div>
       </div>
     </div>

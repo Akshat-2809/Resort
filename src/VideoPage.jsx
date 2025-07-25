@@ -3,7 +3,7 @@ import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 
 const HotelVisualization = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const videoRef = useRef(null);
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
@@ -14,7 +14,7 @@ const HotelVisualization = () => {
     offset: ["start end", "end start"]
   });
 
-  // Transform values based on scroll progress - removed rotation
+  // Transform values based on scroll progress
   const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.8, 1, 1.2]);
   const opacity = useTransform(scrollYProgress, [0, 0.3, 0.8, 1], [0, 1, 1, 0.3]);
   const borderRadius = useTransform(scrollYProgress, [0, 0.5], ["30px", "0px"]);
@@ -23,33 +23,40 @@ const HotelVisualization = () => {
   // Handle video loaded
   const handleVideoLoaded = () => {
     setIsLoaded(true);
+    setVideoError(false);
   };
 
-  // Handle smooth loop transition - removed to fix color change issue
-  const handleVideoTimeUpdate = () => {
-    // Removed the transition logic that was causing color changes
+  // Handle video error
+  const handleVideoError = (e) => {
+    console.error('Video failed to load:', e);
+    setVideoError(true);
+    setIsLoaded(true);
   };
 
-  // Handle video ended event - simplified
+  // Handle video ended event
   const handleVideoEnded = () => {
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
     }
   };
 
-  // Auto-play when in view
+  // Auto-play when in view with Safari compatibility
   useEffect(() => {
-    if (isInView && videoRef.current) {
+    if (isInView && videoRef.current && !videoError) {
       const playVideo = async () => {
         try {
-          await videoRef.current.play();
+          videoRef.current.currentTime = 0;
+          const playPromise = videoRef.current.play();
+          if (playPromise !== undefined) {
+            await playPromise;
+          }
         } catch (error) {
           console.log('Video autoplay failed:', error);
         }
       };
       playVideo();
     }
-  }, [isInView]);
+  }, [isInView, videoError]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -97,9 +104,8 @@ const HotelVisualization = () => {
     <div 
       ref={sectionRef} 
       className="relative min-h-screen overflow-hidden"
-      style={{ backgroundColor: '#ffffff' }}
     > 
-      {/* Video Background with Enhanced Scroll Animation - No Rotation */}
+      {/* Video Background with Enhanced Scroll Animation */}
       <motion.div 
         className="absolute inset-0 origin-center"
         style={{
@@ -118,37 +124,47 @@ const HotelVisualization = () => {
           }}
           animate={{ 
             boxShadow: isInView ? "0 30px 60px rgba(0,0,0,0.4)" : "0 0 0 rgba(0,0,0,0)",
-            filter: "brightness(0.85) contrast(1.1)" // Keep consistent filter
+            filter: "brightness(0.85) contrast(1.1)"
           }}
           transition={{ duration: 2, ease: "easeOut" }}
         >
-          <video
-            ref={videoRef}
-            className="w-full h-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            onLoadedData={handleVideoLoaded}
-            onTimeUpdate={handleVideoTimeUpdate}
-            onEnded={handleVideoEnded}
-            style={{
-              willChange: 'transform',
-              backfaceVisibility: 'hidden',
-              filter: 'saturate(1.0) contrast(1.0) brightness(1.0)' // Consistent video filter
-            }}
-          >
-            <source
-              src="https://player.vimeo.com/external/434045526.sd.mp4?s=c27eecc69856df2dcfb2ce7a0e67d8a4af5a5e6c&profile_id=164&oauth2_token_id=57447761"
-              type="video/mp4"
+          {!videoError ? (
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              onLoadedData={handleVideoLoaded}
+              onError={handleVideoError}
+              onEnded={handleVideoEnded}
+              webkit-playsinline="true"
+              style={{
+                willChange: 'transform',
+                backfaceVisibility: 'hidden',
+                filter: 'saturate(1.0) contrast(1.0) brightness(1.0)'
+              }}
+            >
+              <source src="/video.mp4" type="video/mp4" />
+              <source src="/video.webm" type="video/webm" />
+            </video>
+          ) : (
+            // Elegant fallback background instead of gray
+            <div 
+              className="w-full h-full"
+              style={{
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #475569 75%, #64748b 100%)',
+                backgroundImage: `
+                  radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                  radial-gradient(circle at 75% 75%, rgba(255,255,255,0.05) 0%, transparent 50%),
+                  linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.02) 50%, transparent 60%)
+                `,
+                backgroundSize: '400px 400px, 300px 300px, 200px 200px'
+              }}
             />
-            <source
-              src="/video.webm"
-              type="video/webm"
-            />
-            Your browser does not support the video tag.
-          </video>
+          )}
 
           {/* Subtle gradient overlay that responds to scroll */}
           <motion.div 
@@ -240,23 +256,31 @@ const HotelVisualization = () => {
         </div>
       </motion.div>
 
-      {/* Loading Overlay - Fixed duplicate style issue */}
+      {/* Loading Overlay - More elegant */}
       {!isLoaded && (
         <motion.div
-          className="absolute inset-0 flex items-center justify-center z-30"
+          className="absolute inset-0 flex items-center justify-center z-30 bg-black"
           initial={{ opacity: 1 }}
           animate={{ opacity: 0 }}
           transition={{ duration: 1, delay: 2 }}
           style={{ 
-            backgroundColor: '#ffffff',
             display: isLoaded ? 'none' : 'flex'
           }}
         >
           <motion.div
-            className="w-12 h-12 border-3 border-gray-300 border-t-gray-800 rounded-full"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          />
+            className="relative"
+          >
+            <motion.div
+              className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.div
+              className="absolute inset-0 w-12 h-12 border-2 border-transparent border-r-white/40 rounded-full"
+              animate={{ rotate: -360 }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+            />
+          </motion.div>
         </motion.div>
       )}
 
@@ -267,6 +291,9 @@ const HotelVisualization = () => {
           y: useTransform(scrollYProgress, [0, 1], [0, -100]),
           opacity: useTransform(scrollYProgress, [0, 0.5, 1], [0, 1, 0])
         }}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 2, delay: 1.5 }}
       />
       
       <motion.div
@@ -275,8 +302,25 @@ const HotelVisualization = () => {
           y: useTransform(scrollYProgress, [0, 1], [0, -150]),
           opacity: useTransform(scrollYProgress, [0.2, 0.7, 1], [0, 1, 0])
         }}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 2, delay: 2 }}
+      />
+
+      {/* Additional floating particles */}
+      <motion.div
+        className="absolute top-3/4 left-10 w-1.5 h-1.5 bg-white/25 rounded-full z-10"
+        style={{
+          y: useTransform(scrollYProgress, [0, 1], [0, -80]),
+          x: useTransform(scrollYProgress, [0, 1], [0, 30]),
+          opacity: useTransform(scrollYProgress, [0.1, 0.6, 1], [0, 1, 0])
+        }}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 2, delay: 1.8 }}
       />
     </div>
   );
 };
+
 export default HotelVisualization;

@@ -31,11 +31,12 @@ const InputField = React.memo(({ label, name, type = 'text', placeholder, classN
   </div>
 ));
 
-const CheckoutPage = ({ onBack }) => {
+const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const bookingData = location.state;
+  // Get booking data from navigation state
+  const bookingData = location.state?.bookingData;
   
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', phone: '', address: '', city: '', country: '', zipCode: '',
@@ -59,6 +60,7 @@ const CheckoutPage = ({ onBack }) => {
     });
   }, []);
 
+  // Default booking data for fallback
   const defaultBooking = {
     room: {
       name: "Luxury Suite",
@@ -73,19 +75,64 @@ const CheckoutPage = ({ onBack }) => {
     children: 0
   };
 
+  // Use bookingData if available, otherwise use default
   const booking = bookingData || defaultBooking;
-  const { room, checkIn, checkOut, adults, children = 0 } = booking;
-  const handleBack = onBack || (() => navigate('/'));
+  
+  // Safely destructure with fallbacks
+  const {
+    room = defaultBooking.room,
+    checkIn = defaultBooking.checkIn,
+    checkOut = defaultBooking.checkOut,
+    adults = defaultBooking.adults,
+    children = defaultBooking.children
+  } = booking;
 
-  const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
-  const roomPrice = parseFloat(room.price.replace('$', ''));
+  // If no booking data and no default, show error page
+  if (!bookingData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-medium text-gray-900 mb-4">No booking data found</h2>
+          <p className="text-gray-600 mb-6">Please start your booking from the booking page to continue with checkout.</p>
+          <div className="space-y-3">
+            <button 
+              onClick={() => navigate('/')}
+              className="w-full bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+            >
+              Go to Booking Page
+            </button>
+            <button 
+              onClick={() => navigate('/')}
+              className="w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const handleBack = () => navigate('/');
+
+  const nights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
+  const roomPrice = parseFloat((room?.price || '$0').replace('$', '')) || 0;
   const subtotal = roomPrice * nights;
   const taxes = subtotal * 0.12;
   const total = subtotal + taxes;
 
-  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { 
-    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' 
-  });
+  const formatDate = (dateString) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', { 
+        weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' 
+      });
+    } catch {
+      return dateString;
+    }
+  };
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -145,7 +192,7 @@ const CheckoutPage = ({ onBack }) => {
     const newErrors = {};
     
     required.forEach(field => {
-      if (!formData[field].trim()) {
+      if (!formData[field]?.trim()) {
         const fieldName = field.replace(/([A-Z])/g, ' $1').toLowerCase();
         newErrors[field] = `${fieldName} is required`;
       }
@@ -178,23 +225,6 @@ const CheckoutPage = ({ onBack }) => {
     }, 2000);
   }, [validateForm, navigate]);
 
-  if (!bookingData && !booking) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-medium text-gray-900 mb-4">No booking data found</h2>
-          <p className="text-gray-600 mb-4">Please start your booking from the rooms page.</p>
-          <button 
-            onClick={() => navigate('/booking')}
-            className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            Go to Booking Page
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       <style>{`
@@ -226,21 +256,25 @@ const CheckoutPage = ({ onBack }) => {
                 <h2 className="text-xl font-medium text-gray-900 mb-6">Booking Summary</h2>
                 
                 <div className="relative h-48 rounded-lg overflow-hidden mb-4">
-                  <img src={room.image} alt={room.name} className="w-full h-full object-cover" />
+                  <img 
+                    src={room?.image || defaultBooking.room.image} 
+                    alt={room?.name || 'Hotel Room'} 
+                    className="w-full h-full object-cover" 
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
 
                 <div className="mb-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">{room.name}</h3>
-                  <p className="text-gray-600 mb-1">{room.beds} | {room.sleeps}</p>
-                  <p className="text-gray-600">{room.price}/night</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{room?.name || 'Room'}</h3>
+                  <p className="text-gray-600 mb-1">{room?.beds || 'Bed'} | {room?.sleeps || 'Sleeps'}</p>
+                  <p className="text-gray-600">{room?.price || '$0'}/night</p>
                 </div>
 
                 <div className="space-y-4 mb-6">
                   {[
                     { icon: Calendar, label: 'Check-in', value: formatDate(checkIn) },
                     { icon: Calendar, label: 'Check-out', value: formatDate(checkOut) },
-                    { icon: Users, label: 'Guests', value: `${adults} adults${children > 0 ? `, ${children} children` : ''}` }
+                    { icon: Users, label: 'Guests', value: `${adults || 0} adults${children > 0 ? `, ${children} children` : ''}` }
                   ].map(({ icon: Icon, label, value }) => (
                     <div key={label} className="flex items-center text-gray-600">
                       <Icon className="w-5 h-5 mr-3" />
@@ -254,7 +288,7 @@ const CheckoutPage = ({ onBack }) => {
 
                 <div className="border-t border-gray-200 pt-4 space-y-2">
                   <div className="flex justify-between text-gray-600">
-                    <span>{room.price} × {nights} night{nights > 1 ? 's' : ''}</span>
+                    <span>{room?.price || '$0'} × {nights} night{nights > 1 ? 's' : ''}</span>
                     <span>${subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
