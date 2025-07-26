@@ -74,10 +74,10 @@ const RestaurantInfo = () => {
           </motion.p>
         </div>
 
-        {/* Navigation Arrows */}
+        {/* Navigation Arrows - Hidden on mobile */}
         <div className="relative">
           <motion.button
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-16 z-10 w-12 h-12 border border-gray-300 rounded-full flex items-center justify-center bg-white hover:bg-gray-50 transition-colors duration-300"
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-16 z-10 w-12 h-12 border border-gray-300 rounded-full items-center justify-center bg-white hover:bg-gray-50 transition-colors duration-300 hidden lg:flex"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
@@ -85,7 +85,7 @@ const RestaurantInfo = () => {
           </motion.button>
 
           <motion.button
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-16 z-10 w-12 h-12 border border-gray-300 rounded-full flex items-center justify-center bg-white hover:bg-gray-50 transition-colors duration-300"
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-16 z-10 w-12 h-12 border border-gray-300 rounded-full items-center justify-center bg-white hover:bg-gray-50 transition-colors duration-300 hidden lg:flex"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >

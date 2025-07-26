@@ -462,7 +462,7 @@ const BookingPage = () => {
   const minCheckOutDate = getMinCheckOutDate(checkIn);
 
   return (
-    <div>
+    <div id="booking-section">
       <style>{`
         html {
           scroll-behavior: smooth;

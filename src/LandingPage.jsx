@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom'; // Import Link from react-router-dom
+import { Link } from 'react-router-dom';
 
 const LuxeEscape = () => {
   const [isNavVisible, setIsNavVisible] = useState(true);
@@ -38,6 +38,28 @@ const LuxeEscape = () => {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [isMobileMenuOpen]);
+
+  // Function to scroll to booking section
+  const scrollToBooking = () => {
+    const bookingSection = document.getElementById('booking-section');
+    if (bookingSection) {
+      bookingSection.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
+
+  // Function to scroll to rooms section
+  const scrollToRooms = () => {
+    const roomsSection = document.getElementById('rooms-section');
+    if (roomsSection) {
+      roomsSection.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -172,8 +194,28 @@ const LuxeEscape = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  // Helper function to handle navigation item clicks
+  const handleNavItemClick = (item) => {
+    if (item === 'Booking') {
+      scrollToBooking();
+    } else if (item === 'Rooms') {
+      scrollToRooms();
+    }
+    // For other items, they will use Link component navigation
+  };
+
+  // Helper function to handle mobile navigation item clicks
+  const handleMobileNavItemClick = (item) => {
+    if (item === 'Booking') {
+      scrollToBooking();
+    } else if (item === 'Rooms') {
+      scrollToRooms();
+    }
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white">
       {/* Navigation Bar */}
       <motion.nav 
         variants={navVariants}
@@ -192,20 +234,48 @@ const LuxeEscape = () => {
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex space-x-8">
-            {['Hotel', 'Rooms', 'Restaurant', 'Booking'].map((item, index) => (
-              <Link to={item === 'Restaurant' ? '/restaurantinfo' : '#'} key={item} className="text-gray-700 font-medium transition-colors duration-200">
-                <motion.a
-                  variants={navItemVariants}
-                  whileHover="hover"
-                  className="text-gray-700 font-medium transition-colors duration-200"
+            {['Hotel', 'Rooms', 'Restaurant', 'Booking'].map((item, index) => {
+              // For items that need scroll functionality
+              if (item === 'Booking' || item === 'Rooms') {
+                return (
+                  <motion.button
+                    key={item}
+                    variants={navItemVariants}
+                    whileHover="hover"
+                    className="text-gray-700 font-medium transition-colors duration-200 cursor-pointer"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
+                    onClick={() => handleNavItemClick(item)}
+                  >
+                    {item}
+                  </motion.button>
+                );
+              }
+              
+              // For items that need Link navigation
+              return (
+                <motion.div
+                  key={item}
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
                 >
-                  {item}
-                </motion.a>
-              </Link>
-            ))}
+                  <Link
+                    to={item === 'Restaurant' ? '/restaurantinfo' : '#'}
+                    className="text-gray-700 font-medium transition-colors duration-200 block"
+                  >
+                    <motion.span
+                      variants={navItemVariants}
+                      whileHover="hover"
+                      className="block"
+                    >
+                      {item}
+                    </motion.span>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
 
           {/* Mobile Menu Button */}
@@ -242,27 +312,50 @@ const LuxeEscape = () => {
               className="md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-sm shadow-lg rounded-b-2xl border-t border-gray-100"
             >
               <div className="px-6 py-4 space-y-4">
-                {['Hotel', 'Rooms', 'Restaurant', 'Booking'].map((item, index) => (
-                  <Link to={item === 'Restaurant' ? '/restaurantinfo' : '#'} key={item} className="text-gray-700 font-medium py-2 hover:text-orange-600 transition-colors duration-200">
-                    <motion.a
+                {['Hotel', 'Rooms', 'Restaurant', 'Booking'].map((item, index) => {
+                  // For items that need scroll functionality
+                  if (item === 'Booking' || item === 'Rooms') {
+                    return (
+                      <motion.button
+                        key={item}
+                        variants={mobileMenuItemVariants}
+                        initial="hidden"
+                        animate="visible"
+                        custom={index}
+                        className="block w-full text-left text-gray-700 font-medium py-2 hover:text-orange-600 transition-colors duration-200"
+                        onClick={() => handleMobileNavItemClick(item)}
+                      >
+                        {item}
+                      </motion.button>
+                    );
+                  }
+                  
+                  // For items that need Link navigation
+                  return (
+                    <motion.div
+                      key={item}
                       variants={mobileMenuItemVariants}
                       initial="hidden"
                       animate="visible"
                       custom={index}
-                      className="block text-gray-700 font-medium py-2 hover:text-orange-600 transition-colors duration-200"
-                      onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      {item}
-                    </motion.a>
-                  </Link>
-                ))}
+                      <Link
+                        to={item === 'Restaurant' ? '/restaurantinfo' : '#'}
+                        className="block text-gray-700 font-medium py-2 hover:text-orange-600 transition-colors duration-200"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {item}
+                      </Link>
+                    </motion.div>
+                  );
+                })}
                 <motion.button
                   variants={mobileMenuItemVariants}
                   initial="hidden"
                   animate="visible"
                   custom={4}
                   className="w-full bg-black text-white px-6 py-3 rounded-full text-sm font-medium mt-4"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => handleMobileNavItemClick('Booking')}
                 >
                   Book now
                 </motion.button>
@@ -315,6 +408,7 @@ const LuxeEscape = () => {
                 whileHover="hover"
                 whileTap="tap"
                 className="bg-black text-white px-12 py-4 rounded-full text-lg font-medium shadow-lg"
+                onClick={scrollToBooking}
               >
                 Book now
               </motion.button>
@@ -327,9 +421,9 @@ const LuxeEscape = () => {
           variants={imageVariants}
           initial="hidden"
           animate="visible"
-          className="w-full h-1/2 relative  overflow-hidden"
+          className="w-full h-1/2 relative overflow-hidden px-6"
         >
-          <img src="/LandingPage.webp" alt="Hotel Lobby" className="w-full h-full object-fit p-6 rounded-2xl" />
+          <img src="/LandingPage.webp" alt="Hotel Lobby" className="w-full h-full object-cover rounded-3xl" />
         </motion.div>
       </div>
     </div>
